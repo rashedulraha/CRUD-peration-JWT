@@ -19,7 +19,7 @@ async function run() {
     const db = client.db("crud-operation");
     const userCollection = db.collection("users");
 
-    //!   user end point
+    //!  register
     app.post("/register", async (req, res) => {
       try {
         const { name, email, password } = req.body;
@@ -48,6 +48,28 @@ async function run() {
       } catch (error) {
         res.status(400).json({
           message: "field to create user",
+        });
+      }
+    });
+    //! login
+
+    app.post("/login", async (req, res) => {
+      try {
+        const { email, password } = req.body;
+
+        const userPassword = await userCollection.findOne({
+          email,
+        });
+
+        const isMatchPassword = await bcrypt.compare(
+          password,
+          userPassword.password
+        );
+
+        console.log(isMatchPassword);
+      } catch (error) {
+        res.status(400).json({
+          message: "login field please check your email and password",
         });
       }
     });
