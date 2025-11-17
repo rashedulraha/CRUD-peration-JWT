@@ -2,7 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import mongodb, { MongoClient } from "mongodb";
+import mongodb, { MongoClient, ObjectId } from "mongodb";
 
 dotenv.config();
 
@@ -89,6 +89,43 @@ async function run() {
       } catch (error) {
         res.status(400).json({
           message: "login field please check your email and password",
+        });
+      }
+    });
+
+    //!  get profile data
+
+    app.get("/me", async (req, res) => {
+      try {
+        const token = req.headers.authorization;
+
+        if (!token) {
+          return res.status(409).json({
+            message: "unauthorize",
+          });
+        }
+
+        const decodedData = jwt.verify(token, "fdfsdfjdklfjdjfdj");
+
+        if (!decodedData) {
+          return res.status(409).json({
+            message: "unauthorize",
+          });
+        }
+
+        const user = await userCollection.findOne(
+          {
+            _id: new ObjectId(decodedData._id),
+          },
+          {
+            projection: { password: 0 },
+          }
+        );
+
+        res.status(200).json(user);
+      } catch (error) {
+        res.status(400).json({
+          message: "Filed to fetch profile data",
         });
       }
     });
