@@ -1,6 +1,7 @@
 import express from "express";
 import dotenv from "dotenv";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import mongodb, { MongoClient } from "mongodb";
 
 dotenv.config();
@@ -46,27 +47,45 @@ async function run() {
           result,
         });
       } catch (error) {
-        res.status(400).json({
+        res.status(409).json({
           message: "field to create user",
         });
       }
     });
+
     //! login
 
     app.post("/login", async (req, res) => {
       try {
         const { email, password } = req.body;
+        // console.log(email, password);
 
-        const userPassword = await userCollection.findOne({
-          email,
-        });
+        //  find email to get match data
+        const user = await userCollection.findOne({ email });
 
-        const isMatchPassword = await bcrypt.compare(
-          password,
-          userPassword.password
+        const isMatchPassword = await bcrypt.compare(password, user.password);
+
+        if (!isMatchPassword) {
+          return res.status(400).json({ message: "password incorrect" });
+        }
+
+        //  generate  a toke using jwt
+
+        const token = jwt.sign(
+          {
+            email: user.email,
+            _id: user._id,
+          },
+          "fdfsdfjdklfjdjfdj",
+          {
+            expiresIn: "3h",
+          }
         );
 
-        console.log(isMatchPassword);
+        res.status(200).json({
+          message: "logged successfully!",
+          token,
+        });
       } catch (error) {
         res.status(400).json({
           message: "login field please check your email and password",
