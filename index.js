@@ -11,6 +11,27 @@ app.use(express.json());
 const port = process.env.PROT || 3000;
 const client = new MongoClient(process.env.DATA_BASE_URL);
 
+//! MiddleWare
+const verifyJwtToken = (req, res, next) => {
+  const token = req.headers.authorization || undefined;
+
+  if (token) {
+    return res.status(403).json({
+      message: "unauthorize",
+    });
+  }
+
+  jwt.verify(token, "fdfsdfjdklfjdjfdj", (error, decodedData) => {
+    if (error) {
+      return res.status(409).json({
+        message: "You are not authorize",
+      });
+    }
+    req.user = decodedData;
+    next();
+  });
+};
+
 async function run() {
   // database connection
 
@@ -58,7 +79,6 @@ async function run() {
     app.post("/login", async (req, res) => {
       try {
         const { email, password } = req.body;
-        // console.log(email, password);
 
         //  find email to get match data
         const user = await userCollection.findOne({ email });
@@ -95,34 +115,20 @@ async function run() {
 
     //!  get profile data
 
-    app.get("/me", async (req, res) => {
+    app.get("/me", verifyJwtToken, async (req, res) => {
       try {
-        const token = req.headers.authorization;
+        const user = req.user;
 
-        if (!token) {
-          return res.status(409).json({
-            message: "unauthorize",
-          });
-        }
-
-        const decodedData = jwt.verify(token, "fdfsdfjdklfjdjfdj");
-
-        if (!decodedData) {
-          return res.status(409).json({
-            message: "unauthorize",
-          });
-        }
-
-        const user = await userCollection.findOne(
+        const userData = await userCollection.findOne(
           {
-            _id: new ObjectId(decodedData._id),
+            _id: new ObjectId(user._id),
           },
           {
             projection: { password: 0 },
           }
         );
 
-        res.status(200).json(user);
+        res.status(200).json(userData);
       } catch (error) {
         res.status(400).json({
           message: "Filed to fetch profile data",
